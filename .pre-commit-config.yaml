@@ -1,0 +1,251 @@
+# Plant Care Application - Pre-commit Configuration
+repos:
+  # Pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-ast
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-xml
+      - id: debug-statements
+      - id: detect-aws-credentials
+      - id: detect-private-key
+      - id: fix-byte-order-marker
+      - id: mixed-line-ending
+      - id: requirements-txt-fixer
+      - id: sort-simple-yaml
+
+  # Python code formatting
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        language_version: python3.11
+        args: [--line-length=100]
+
+  # Python import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=100]
+
+  # Python linting
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        args: [--max-line-length=100, --extend-ignore=E203,E266,E501,W503,F403,F401]
+        additional_dependencies:
+          - flake8-docstrings
+          - flake8-import-order
+          - flake8-bugbear
+          - flake8-comprehensions
+          - flake8-simplify
+
+  # Python type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pydantic
+          - sqlalchemy
+          - fastapi
+          - types-requests
+          - types-redis
+          - types-PyYAML
+          - types-python-dateutil
+        args: [--ignore-missing-imports, --strict]
+
+  # Security linting
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [--exclude, tests]
+
+  # Documentation linting
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        args: [--convention=google]
+
+  # Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.32.0
+    hooks:
+      - id: yamllint
+        args: [-d, relaxed]
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.37.0
+    hooks:
+      - id: markdownlint
+
+  # SQL formatting
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 2.3.5
+    hooks:
+      - id: sqlfluff-lint
+        args: [--dialect=postgres]
+      - id: sqlfluff-fix
+        args: [--dialect=postgres]
+
+  # Secrets detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+
+  # Python upgrade syntax
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.0
+    hooks:
+      - id: pyupgrade
+        args: [--py311-plus]
+
+  # Remove unused imports
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.2.1
+    hooks:
+      - id: autoflake
+        args:
+          - --in-place
+          - --remove-all-unused-imports
+          - --remove-unused-variables
+          - --remove-duplicate-keys
+          - --ignore-init-module-imports
+
+  # Sort requirements.txt
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.3
+    hooks:
+      - id: prettier
+        types_or: [yaml, markdown, json]
+
+  # Local hooks
+  - repo: local
+    hooks:
+      # Run tests
+      - id: pytest
+        name: pytest
+        entry: pytest
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        args: [--tb=short]
+
+      # Check for TODO/FIXME comments
+      - id: check-todos
+        name: Check for TODO/FIXME comments
+        entry: grep -n "TODO\|FIXME\|XXX\|HACK"
+        language: system
+        files: \.(py|md|yml|yaml|json)$
+        verbose: true
+        pass_filenames: true
+        optional: true
+
+      # Check for print statements
+      - id: check-print-statements
+        name: Check for print statements
+        entry: grep -n "print("
+        language: system
+        files: \.py$
+        verbose: true
+        pass_filenames: true
+        optional: true
+
+      # Check for debugger statements
+      - id: check-debugger
+        name: Check for debugger statements
+        entry: grep -n "import pdb\|pdb.set_trace\|breakpoint("
+        language: system
+        files: \.py$
+        verbose: true
+        pass_filenames: true
+        optional: true
+
+      # Check for hardcoded secrets
+      - id: check-hardcoded-secrets
+        name: Check for hardcoded secrets
+        entry: grep -i -n "password\|secret\|token\|key.*=" 
+        language: system
+        files: \.py$
+        verbose: true
+        pass_filenames: true
+        optional: true
+        exclude: |
+          (?x)^(
+            .*/tests/.*|
+            .*/conftest.py|
+            .*/settings.py|
+            .*/config.py
+          )$
+
+      # Check requirements.txt format
+      - id: check-requirements
+        name: Check requirements.txt format
+        entry: python -m pip check
+        language: system
+        files: requirements.*\.txt$
+        pass_filenames: false
+        optional: true
+
+      # Check Docker files
+      - id: check-docker
+        name: Check Docker files
+        entry: docker-compose config
+        language: system
+        files: docker-compose.*\.yml$
+        pass_filenames: false
+        optional: true
+
+      # Check environment variables
+      - id: check-env-vars
+        name: Check environment variables
+        entry: python -c "from app.shared.config.settings import Settings; Settings()"
+        language: system
+        files: \.(py|env)$
+        pass_filenames: false
+        optional: true
+
+# Global configuration
+default_stages: [commit, push]
+fail_fast: false
+minimum_pre_commit_version: 3.0.0
+
+# CI configuration
+ci:
+  autofix_prs: true
+  autofix_commit_msg: 'fix: auto fixes from pre-commit hooks'
+  autoupdate_schedule: weekly
+  autoupdate_commit_msg: 'chore: pre-commit autoupdate'
+  skip: [pytest, check-requirements, check-docker, check-env-vars]

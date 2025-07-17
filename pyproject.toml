@@ -1,0 +1,220 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "plant-care-backend"
+version = "1.0.0"
+description = "Plant Care Application Backend API"
+authors = [
+    { name = "Plant Care Team", email = "team@plantcare.com" }
+]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+keywords = ["plant", "care", "api", "fastapi", "agriculture"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "fastapi>=0.104.1",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.5.0",
+    "sqlalchemy>=2.0.23",
+    "alembic>=1.13.1",
+    "redis>=5.0.1",
+    "celery>=5.3.4",
+    "supabase>=2.0.0",
+    "pillow>=10.1.0",
+    "httpx>=0.25.2",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.6",
+    "slowapi>=0.1.9",
+    "python-dotenv>=1.0.0",
+    "structlog>=23.2.0",
+    "prometheus-client>=0.19.0",
+    "openai>=1.3.8",
+    "anthropic>=0.7.8",
+    "firebase-admin>=6.4.0",
+    "sendgrid>=6.10.0",
+    "razorpay>=1.3.2",
+    "stripe>=7.8.0",
+    "requests>=2.31.0",
+    "aiohttp>=3.9.1",
+    "email-validator>=2.1.0",
+    "python-dateutil>=2.8.2",
+    "pytz>=2023.3",
+    "rich>=13.7.0",
+    "typer>=0.9.0",
+    "pyyaml>=6.0.1",
+    "click>=8.1.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "black>=23.11.0",
+    "isort>=5.12.0",
+    "flake8>=6.1.0",
+    "mypy>=1.7.1",
+    "pre-commit>=3.6.0",
+    "httpx>=0.25.2",
+    "factory-boy>=3.3.0",
+    "faker>=20.1.0",
+]
+test = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "httpx>=0.25.2",
+    "factory-boy>=3.3.0",
+    "faker>=20.1.0",
+]
+docs = [
+    "mkdocs>=1.5.3",
+    "mkdocs-material>=9.4.14",
+    "mkdocs-swagger-ui-tag>=0.6.6",
+    "mkdocstrings[python]>=0.24.0",
+]
+monitoring = [
+    "prometheus-client>=0.19.0",
+    "sentry-sdk[fastapi]>=1.38.0",
+    "opentelemetry-api>=1.21.0",
+    "opentelemetry-sdk>=1.21.0",
+    "opentelemetry-instrumentation-fastapi>=0.42b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.42b0",
+    "opentelemetry-instrumentation-redis>=0.42b0",
+    "opentelemetry-exporter-jaeger>=1.21.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/plantcare/backend"
+Documentation = "https://docs.plantcare.com"
+Repository = "https://github.com/plantcare/backend"
+Issues = "https://github.com/plantcare/backend/issues"
+Changelog = "https://github.com/plantcare/backend/blob/main/CHANGELOG.md"
+
+[project.scripts]
+plant-care-api = "app.main:run"
+plant-care-worker = "app.background_jobs.celery_app:run_worker"
+plant-care-beat = "app.background_jobs.celery_app:run_beat"
+plant-care-migrate = "scripts.migrate:main"
+plant-care-seed = "scripts.seed_database:main"
+
+[tool.setuptools.packages.find]
+where = ["app"]
+include = ["app*"]
+exclude = ["tests*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 100
+skip_gitignore = true
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "e2e: marks tests as end-to-end tests",
+]
+asyncio_mode = "auto"
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__init__.py",
+    "*/migrations/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "E266", "E501", "W503", "F403", "F401"]
+max-complexity = 10
+select = ["B", "C", "E", "F", "W", "T4", "B9"]
+
+[tool.bandit]
+exclude_dirs = ["tests", "migrations"]
+skips = ["B101", "B601"]

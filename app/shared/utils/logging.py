@@ -216,6 +216,46 @@ def log_security_event(event_type: str, user_id: str = None, **kwargs) -> None:
     )
 
 
+# API request logging
+def log_api_request(
+    method: str,
+    url: str,
+    status_code: int,
+    process_time: float,
+    user_id: str = None,
+    user_agent: str = None,
+    ip_address: str = None,
+    endpoint: str = None,
+    **kwargs
+) -> None:
+    """
+    Log incoming API request details.
+
+    Args:
+        method: HTTP method (GET, POST, etc.)
+        url: Full request URL
+        status_code: Response status code
+        process_time: Time taken to process the request
+        user_id: Optional user ID
+        user_agent: Optional user agent string
+        ip_address: Optional client IP address
+        endpoint: Optional endpoint path
+        **kwargs: Additional metadata
+    """
+    logger = get_logger("api_requests")
+    logger.info(
+        "API request log",
+        method=method,
+        url=url,
+        status_code=status_code,
+        process_time=process_time,
+        user_id=user_id,
+        user_agent=user_agent,
+        ip_address=ip_address,
+        endpoint=endpoint,
+        **kwargs
+    )
+
 # Export logging utilities
 __all__ = [
     "setup_logging",
@@ -227,4 +267,5 @@ __all__ = [
     "log_performance",
     "log_error",
     "log_security_event",
+    "log_api_request",  # Newly added
 ]

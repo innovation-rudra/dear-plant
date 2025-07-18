@@ -1,0 +1,310 @@
+# monitoring/prometheus.yml
+# Plant Care Application - Prometheus Monitoring Configuration
+# Monitors API performance, Celery tasks, Redis, and business metrics
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'plant-care-monitor'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "rules/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Plant Care API instances
+  - job_name: 'plant-care-api'
+    static_configs:
+      - targets: 
+          - 'plant-care-api-1:8000'
+          - 'plant-care-api-2:8000'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: plant-care-api:8000
+
+  # Redis monitoring
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Nginx monitoring (if nginx-prometheus-exporter is configured)
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:9113']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Celery monitoring via Flower
+  - job_name: 'celery-flower'
+    static_configs:
+      - targets: ['flower:5555']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    basic_auth:
+      username: '${FLOWER_USER}'
+      password: '${FLOWER_PASSWORD}'
+
+  # Node exporter for system metrics (if deployed)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+
+  # Plant Care specific business metrics
+  - job_name: 'plant-care-business-metrics'
+    static_configs:
+      - targets: ['plant-care-api-1:8000', 'plant-care-api-2:8000']
+    metrics_path: '/api/v1/metrics/business'
+    scrape_interval: 60s
+    scrape_timeout: 30s
+    params:
+      format: ['prometheus']
+    basic_auth:
+      username: 'metrics'
+      password: '${METRICS_PASSWORD}'
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /prometheus
+    retention.time: 15d
+    retention.size: 10GB
+
+# Remote write configuration for long-term storage (optional)
+# remote_write:
+#   - url: "https://your-remote-prometheus-endpoint/api/v1/write"
+#     basic_auth:
+#       username: your_username
+#       password: your_password
+
+# Custom recording rules for Plant Care metrics
+recording_rules:
+  - name: plant_care_recording_rules
+    interval: 30s
+    rules:
+      # API Performance metrics
+      - record: plant_care:api_request_rate
+        expr: rate(http_requests_total{job="plant-care-api"}[5m])
+      
+      - record: plant_care:api_error_rate
+        expr: rate(http_requests_total{job="plant-care-api",status=~"5.."}[5m]) / rate(http_requests_total{job="plant-care-api"}[5m])
+      
+      - record: plant_care:api_response_time_p95
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="plant-care-api"}[5m]))
+      
+      # Business metrics
+      - record: plant_care:active_users_daily
+        expr: increase(plant_care_user_logins_total[24h])
+      
+      - record: plant_care:plants_added_daily
+        expr: increase(plant_care_plants_created_total[24h])
+      
+      - record: plant_care:care_tasks_completed_daily
+        expr: increase(plant_care_tasks_completed_total[24h])
+      
+      - record: plant_care:photos_uploaded_daily
+        expr: increase(plant_care_photos_uploaded_total[24h])
+      
+      # Celery task metrics
+      - record: plant_care:celery_task_rate
+        expr: rate(celery_tasks_total[5m])
+      
+      - record: plant_care:celery_task_failure_rate
+        expr: rate(celery_tasks_total{state="FAILURE"}[5m]) / rate(celery_tasks_total[5m])
+      
+      # Redis performance
+      - record: plant_care:redis_memory_usage_percent
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100
+      
+      - record: plant_care:redis_hit_rate
+        expr: rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))
+
+# Alerting rules for Plant Care Application
+alerting_rules:
+  - name: plant_care_alerts
+    rules:
+      # API Health alerts
+      - alert: PlantCareAPIDown
+        expr: up{job="plant-care-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "Plant Care API instance is down"
+          description: "Plant Care API instance {{ $labels.instance }} has been down for more than 1 minute."
+      
+      - alert: PlantCareHighErrorRate
+        expr: plant_care:api_error_rate > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High error rate detected"
+          description: "Plant Care API error rate is {{ $value | humanizePercentage }} for more than 5 minutes."
+      
+      - alert: PlantCareSlowResponse
+        expr: plant_care:api_response_time_p95 > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "Slow API response times"
+          description: "Plant Care API 95th percentile response time is {{ $value }}s for more than 5 minutes."
+      
+      # Redis alerts
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance has been down for more than 1 minute."
+      
+      - alert: RedisHighMemoryUsage
+        expr: plant_care:redis_memory_usage_percent > 90
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is {{ $value }}% for more than 5 minutes."
+      
+      - alert: RedisLowHitRate
+        expr: plant_care:redis_hit_rate < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis low hit rate"
+          description: "Redis hit rate is {{ $value | humanizePercentage }} for more than 10 minutes."
+      
+      # Celery alerts
+      - alert: CeleryHighFailureRate
+        expr: plant_care:celery_task_failure_rate > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: celery
+        annotations:
+          summary: "High Celery task failure rate"
+          description: "Celery task failure rate is {{ $value | humanizePercentage }} for more than 5 minutes."
+      
+      - alert: CeleryQueueBacklog
+        expr: celery_queue_length > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: celery
+        annotations:
+          summary: "Celery queue backlog"
+          description: "Celery queue {{ $labels.queue }} has {{ $value }} pending tasks for more than 5 minutes."
+      
+      # Business metrics alerts
+      - alert: LowUserActivity
+        expr: plant_care:active_users_daily < 10
+        for: 1h
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "Low daily user activity"
+          description: "Only {{ $value }} users logged in today."
+      
+      - alert: NoNewPlants
+        expr: plant_care:plants_added_daily == 0
+        for: 4h
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "No new plants added"
+          description: "No new plants have been added in the last 4 hours."
+      
+      # System resource alerts
+      - alert: HighCPUUsage
+        expr: (100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }} for more than 5 minutes."
+      
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }} for more than 5 minutes."
+      
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is {{ $value }}% on {{ $labels.instance }} mount {{ $labels.mountpoint }}."
+
+# Custom metric collection for Plant Care specific KPIs
+custom_metrics:
+  # User engagement metrics
+  - metric_name: plant_care_user_engagement_score
+    help: "User engagement score based on app usage"
+    type: gauge
+    
+  # Plant health metrics
+  - metric_name: plant_care_average_health_score
+    help: "Average health score across all plants"
+    type: gauge
+    
+  # Care completion metrics
+  - metric_name: plant_care_completion_rate
+    help: "Percentage of care tasks completed on time"
+    type: gauge
+    
+  # Revenue metrics (for premium features)
+  - metric_name: plant_care_monthly_revenue
+    help: "Monthly recurring revenue from subscriptions"
+    type: counter

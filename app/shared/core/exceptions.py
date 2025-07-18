@@ -408,11 +408,25 @@ class CacheConnectionError(CacheError):
         self.error_code = "CACHE_CONNECTION_ERROR"
 
 
+
 # Rate Limiting Exceptions
 class RateLimitError(PlantCareException):
     """Raised when rate limit is exceeded."""
     
     def __init__(self, message: str = "Rate limit exceeded", details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=message,
+            error_code="RATE_LIMIT_EXCEEDED",
+            details=details,
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
+
+# New RateLimitExceededError
+class RateLimitExceededError(PlantCareException):
+    """Raised when a user exceeds allowed request limits."""
+    
+    def __init__(self, message: str = "Too many requests. Please try again later.", details: Optional[Dict[str, Any]] = None):
         super().__init__(
             message=message,
             error_code="RATE_LIMIT_EXCEEDED",
@@ -502,6 +516,47 @@ def handle_http_error(error: HTTPException) -> PlantCareException:
             status_code=error.status_code,
         )
 
+# Circuit Breaker Exceptions
+class CircuitBreakerError(PlantCareException):
+    """Base exception for circuit breaker errors."""
+    
+    def __init__(self, service_name: str, message: str = "Circuit breaker error", details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=f"Circuit breaker error for {service_name}: {message}",
+            error_code="CIRCUIT_BREAKER_ERROR",
+            details=details,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+
+class CircuitBreakerOpenError(CircuitBreakerError):
+    """Raised when circuit breaker is open."""
+    
+    def __init__(self, service_name: str, details: Optional[Dict[str, Any]] = None):
+        message = "Circuit breaker is open - service unavailable"
+        super().__init__(service_name=service_name, message=message, details=details)
+        self.error_code = "CIRCUIT_BREAKER_OPEN"
+
+
+class CircuitBreakerTimeoutError(CircuitBreakerError):
+    """Raised when circuit breaker timeout occurs."""
+    
+    def __init__(self, service_name: str, timeout: int, details: Optional[Dict[str, Any]] = None):
+        message = f"Circuit breaker timeout after {timeout} seconds"
+        super().__init__(service_name=service_name, message=message, details=details)
+        self.error_code = "CIRCUIT_BREAKER_TIMEOUT"
+
+class EventProcessingError(EventError):
+    """Raised when event processing fails."""
+    
+    def __init__(self, event_type: str, message: str = "Event processing failed", details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=f"Failed to process event {event_type}: {message}",
+            details=details
+        )
+        self.error_code = "EVENT_PROCESSING_ERROR"
+
+
 
 # Export all exceptions
 __all__ = [
@@ -542,10 +597,15 @@ __all__ = [
     "CacheError",
     "CacheConnectionError",
     "RateLimitError",
+    "RateLimitExceededError",
     "ConfigurationError",
     "MissingConfigurationError",
     "ServiceError",
     "ServiceUnavailableError",
     "handle_database_error",
     "handle_http_error",
+    "CircuitBreakerError",
+    "CircuitBreakerOpenError",
+    "CircuitBreakerTimeoutError",
+    "EventProcessingError"
 ]

@@ -2,40 +2,78 @@
 """
 Plant Care Application - User Management Domain Models
 
-Core domain entities for user management in the Plant Care Application.
-These models represent the business concepts and rules for users, profiles, and subscriptions.
-
-Domain Models:
-- User: Core user entity with authentication and basic information
-- Profile: Extended user profile with Plant Care specific preferences
-- Subscription: Premium subscription management for Plant Care features
-
-All models follow Domain-Driven Design principles and are independent of infrastructure concerns.
+Domain models for user management in the Plant Care Application.
+Contains core business entities with Plant Care specific logic and validation.
 """
 
-from app.modules.user_management.domain.models.user import User, UserRole, UserStatus
-from app.modules.user_management.domain.models.profile import Profile, UserPreferences, NotificationSettings
+from app.modules.user_management.domain.models.user import (
+    # User model and enums
+    User,
+    UserRole,
+    UserStatus,
+    
+    # User factory functions
+    create_user,
+    create_user_from_oauth
+)
+
+from app.modules.user_management.domain.models.profile import (
+    # Profile model and enums
+    Profile,
+    ProfileStatus,
+    ExperienceLevel,
+    PreferredUnits,
+    ProfileVisibility,
+    
+    # Profile factory functions
+    create_profile,
+    create_expert_profile
+)
+
 from app.modules.user_management.domain.models.subscription import (
-    Subscription, 
-    SubscriptionTier, 
+    # Subscription model and enums
+    Subscription,
+    SubscriptionTier,
     SubscriptionStatus,
-    SubscriptionLimits
+    BillingCycle,
+    
+    # Subscription factory functions
+    create_subscription,
+    create_free_subscription,
+    create_premium_subscription,
+    create_trial_subscription
 )
 
 __all__ = [
-    # User models
+    # User model and enums
     "User",
-    "UserRole", 
+    "UserRole",
     "UserStatus",
     
-    # Profile models
-    "Profile",
-    "UserPreferences",
-    "NotificationSettings",
+    # User factory functions
+    "create_user",
+    "create_user_from_oauth",
     
-    # Subscription models
+    # Profile model and enums
+    "Profile",
+    "ProfileStatus",
+    "ExperienceLevel",
+    "PreferredUnits",
+    "ProfileVisibility",
+    
+    # Profile factory functions
+    "create_profile",
+    "create_expert_profile",
+    
+    # Subscription model and enums
     "Subscription",
     "SubscriptionTier",
-    "SubscriptionStatus", 
-    "SubscriptionLimits",
+    "SubscriptionStatus",
+    "BillingCycle",
+    
+    # Subscription factory functions
+    "create_subscription",
+    "create_free_subscription",
+    "create_premium_subscription",
+    "create_trial_subscription"
 ]

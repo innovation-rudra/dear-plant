@@ -19,7 +19,6 @@ from passlib.hash import bcrypt
 import structlog
 
 from app.shared.config.settings import get_settings
-from app.shared.config.supabase import get_supabase_auth
 from app.shared.core.exceptions import (
     AuthenticationError,
     AuthorizationError,

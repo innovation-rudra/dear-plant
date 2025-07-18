@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 
 from app.shared.config.settings import get_settings
-from app.shared.config.supabase import get_supabase_auth, get_supabase_client
 from app.shared.infrastructure.database.connection import get_db_manager
 from app.shared.infrastructure.cache.redis_client import get_redis_manager
 from app.shared.core.security import security_manager

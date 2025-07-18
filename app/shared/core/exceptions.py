@@ -546,6 +546,18 @@ class CircuitBreakerTimeoutError(CircuitBreakerError):
         super().__init__(service_name=service_name, message=message, details=details)
         self.error_code = "CIRCUIT_BREAKER_TIMEOUT"
 
+# Event Processing Exceptions
+class EventError(PlantCareException):
+    """Base exception for event processing errors."""
+    
+    def __init__(self, message: str = "Event processing error", details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=message,
+            error_code="EVENT_ERROR",
+            details=details,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
 class EventProcessingError(EventError):
     """Raised when event processing fails."""
     

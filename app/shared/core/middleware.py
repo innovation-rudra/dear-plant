@@ -512,7 +512,276 @@ class CORSMiddleware(BaseHTTPMiddleware):
         return False
 
 
-# Export middleware classes
+def setup_cors_middleware(app) -> None:
+    """
+    Setup CORS middleware for the Plant Care Application.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    from fastapi.middleware.cors import CORSMiddleware as FastAPICORSMiddleware
+    from app.shared.config.settings import get_settings
+    
+    settings = get_settings()
+    
+    app.add_middleware(
+        FastAPICORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS.split(",") if settings.CORS_ORIGINS != "*" else ["*"],
+        allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+        allow_methods=settings.CORS_ALLOW_METHODS.split(","),
+        allow_headers=settings.CORS_ALLOW_HEADERS.split(",") if settings.CORS_ALLOW_HEADERS != "*" else ["*"],
+    )
+
+def setup_security_middleware(app) -> None:
+    """
+    Setup security middleware for the Plant Care Application.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    app.add_middleware(SecurityHeadersMiddleware)
+
+def setup_request_middleware(app) -> None:
+    """
+    Setup request processing middleware for the Plant Care Application.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    app.add_middleware(ProcessTimeMiddleware)
+    app.add_middleware(RequestLoggingMiddleware)
+
+def setup_rate_limit_middleware(app) -> None:
+    """
+    Setup rate limiting middleware for the Plant Care Application.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    app.add_middleware(RateLimitMiddleware)
+
+def setup_authentication_middleware(app) -> None:
+    """
+    Setup authentication middleware for the Plant Care Application.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    app.add_middleware(AuthenticationMiddleware)
+
+def setup_all_middleware(app) -> None:
+    """
+    Setup all middleware for the Plant Care Application in the correct order.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    # Order matters! Add in reverse order of execution
+    setup_cors_middleware(app)
+    setup_security_middleware(app)
+    setup_rate_limit_middleware(app)
+    setup_authentication_middleware(app)
+    setup_request_middleware(app)
+
+# Add these additional missing functions to your app/shared/core/middleware.py file
+# (Add these AFTER the functions from the previous artifact)
+
+def setup_logging_middleware(app) -> None:
+    """
+    Setup logging middleware for the Plant Care Application.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    app.add_middleware(RequestLoggingMiddleware)
+
+def setup_compression_middleware(app) -> None:
+    """
+    Setup compression middleware for the Plant Care Application.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    from fastapi.middleware.gzip import GZipMiddleware
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+def setup_trusted_host_middleware(app) -> None:
+    """
+    Setup trusted host middleware for the Plant Care Application.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    from fastapi.middleware.trustedhost import TrustedHostMiddleware
+    from app.shared.config.settings import get_settings
+    
+    settings = get_settings()
+    
+    # In production, add specific trusted hosts
+    if settings.APP_ENV == "production":
+        trusted_hosts = ["plantcare.app", "api.plantcare.app", "*.plantcare.app"]
+    else:
+        # In development, allow localhost and common dev hosts
+        trusted_hosts = ["localhost", "127.0.0.1", "*.ngrok.io", "*.localhost"]
+    
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=trusted_hosts)
+
+def setup_error_handling_middleware(app) -> None:
+    """
+    Setup error handling middleware for the Plant Care Application.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    # Note: Error handling is typically done via exception handlers, not middleware
+    # But if you have a custom error handling middleware class, add it here
+    pass
+
+def setup_plant_care_middleware(app) -> None:
+    """
+    Setup Plant Care specific middleware.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    # Add any Plant Care specific middleware here
+    # For example, plant data enrichment, care reminders, etc.
+    pass
+
+def setup_production_middleware(app) -> None:
+    """
+    Setup production-specific middleware for the Plant Care Application.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    from app.shared.config.settings import get_settings
+    
+    settings = get_settings()
+    
+    if settings.APP_ENV == "production":
+        setup_trusted_host_middleware(app)
+        setup_compression_middleware(app)
+        # Add other production-specific middleware
+
+def setup_development_middleware(app) -> None:
+    """
+    Setup development-specific middleware for the Plant Care Application.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    from app.shared.config.settings import get_settings
+    
+    settings = get_settings()
+    
+    if settings.APP_ENV == "development":
+        # Add development-specific middleware
+        # For example, request timing, debug headers, etc.
+        pass
+
+# Update the complete setup function to include logging
+def setup_all_middleware(app) -> None:
+    """
+    Setup all middleware for the Plant Care Application in the correct order.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    from app.shared.config.settings import get_settings
+    
+    settings = get_settings()
+    
+    # Order matters! Add in reverse order of execution
+    # 1. CORS (must be first for preflight requests)
+    setup_cors_middleware(app)
+    
+    # 2. Security headers
+    setup_security_middleware(app)
+    
+    # 3. Trusted hosts (production)
+    if settings.APP_ENV == "production":
+        setup_trusted_host_middleware(app)
+    
+    # 4. Compression
+    setup_compression_middleware(app)
+    
+    # 5. Rate limiting
+    setup_rate_limit_middleware(app)
+    
+    # 6. Authentication
+    setup_authentication_middleware(app)
+    
+    # 7. Logging (should be near the end to catch all requests)
+    setup_logging_middleware(app)
+    
+    # 8. Request processing (process time, etc.)
+    setup_request_middleware(app)
+    
+    # 9. Plant Care specific middleware
+    setup_plant_care_middleware(app)
+    
+    # 10. Environment specific middleware
+    if settings.APP_ENV == "production":
+        setup_production_middleware(app)
+    elif settings.APP_ENV == "development":
+        setup_development_middleware(app)
+
+# Add this function to your app/shared/core/middleware.py file
+# (This provides the exact function name that your __init__.py is looking for)
+
+def setup_rate_limiting_middleware(app) -> None:
+    """
+    Setup rate limiting middleware for the Plant Care Application.
+    (Alternative name for setup_rate_limit_middleware to match imports)
+    
+    Args:
+        app: FastAPI application instance
+    """
+    app.add_middleware(RateLimitMiddleware)
+
+# Also add any other missing function names that might be imported
+def setup_authentication_middleware_v2(app) -> None:
+    """
+    Alternative authentication middleware setup.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    app.add_middleware(AuthenticationMiddleware)
+
+def setup_error_middleware(app) -> None:
+    """
+    Setup error handling middleware.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    # Error handling is typically done via exception handlers
+    # But add any custom error middleware here if needed
+    pass
+
+def setup_monitoring_middleware(app) -> None:
+    """
+    Setup monitoring and metrics middleware.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    # Add monitoring middleware like Prometheus metrics, etc.
+    pass
+
+def setup_caching_middleware(app) -> None:
+    """
+    Setup caching middleware for the Plant Care Application.
+    
+    Args:
+        app: FastAPI application instance
+    """
+    # Add caching middleware if needed
+    pass
+
+# Update the __all__ list to include all possible function names
 __all__ = [
     "SecurityHeadersMiddleware",
     "ProcessTimeMiddleware", 
@@ -520,4 +789,22 @@ __all__ = [
     "RateLimitMiddleware",
     "AuthenticationMiddleware",
     "CORSMiddleware",
+    "setup_cors_middleware",
+    "setup_security_middleware", 
+    "setup_request_middleware",
+    "setup_rate_limit_middleware",
+    "setup_rate_limiting_middleware",  # Add this line
+    "setup_authentication_middleware",
+    "setup_authentication_middleware_v2",
+    "setup_logging_middleware",
+    "setup_compression_middleware",
+    "setup_trusted_host_middleware",
+    "setup_error_handling_middleware",
+    "setup_error_middleware",
+    "setup_monitoring_middleware",
+    "setup_caching_middleware",
+    "setup_plant_care_middleware",
+    "setup_production_middleware",
+    "setup_development_middleware",
+    "setup_all_middleware",
 ]
